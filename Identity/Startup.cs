@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Identity.Models.Context;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Identity
@@ -31,6 +32,10 @@ namespace Identity
             {
                 options.UseSqlServer(Configuration.GetConnectionString("IdentityCmsDbConnection"));
             });
+            //Enable Identity
+            services.AddIdentity<IdentityUser, IdentityRole>()
+                .AddEntityFrameworkStores<AppDbContext>()
+                .AddDefaultTokenProviders();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -50,7 +55,8 @@ namespace Identity
             app.UseStaticFiles();
 
             app.UseRouting();
-
+            //Add Identity MidelleWare
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
