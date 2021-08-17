@@ -11,6 +11,8 @@ using System.Threading.Tasks;
 using Identity.Models.Context;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using PersianTranslate.Identity;
+using Identity.Repositories;
 
 namespace Identity
 {
@@ -33,9 +35,19 @@ namespace Identity
                 options.UseSqlServer(Configuration.GetConnectionString("IdentityCmsDbConnection"));
             });
             //Enable Identity
-            services.AddIdentity<IdentityUser, IdentityRole>()
+            services.AddIdentity<IdentityUser, IdentityRole>(options =>
+            {
+                options.Password.RequiredUniqueChars = 0;
+                options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-";
+                options.User.RequireUniqueEmail = true;
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+
+            })
                 .AddEntityFrameworkStores<AppDbContext>()
-                .AddDefaultTokenProviders();
+                .AddDefaultTokenProviders()
+                .AddErrorDescriber<PersianIdentityErrorDescriber>();
+
+            services.AddScoped<IMessageSender, MessageSender>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

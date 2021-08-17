@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -10,11 +11,13 @@ namespace Identity.ViewModels.Account
     {
         [Display(Name ="نام کاربری")]
         [Required(ErrorMessage ="نام کاربری را وارد کنید")]
+        [Remote("IsUserNameInUse", "Account")]
         public string UserName { get; set; }
 
         [Display(Name ="ایمیل")]
         [Required(ErrorMessage ="پست الکترونیکی خود را وارد کنید")]
         [EmailAddress]
+        [Remote("IsEmailInUse", "Account")]
         public string Email { get; set; }
 
         [Display(Name ="رمز عبور")]
