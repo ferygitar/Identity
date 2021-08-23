@@ -1,39 +1,42 @@
 ﻿
 using System.Net;
 using System.Net.Mail;
+using System.Threading.Tasks;
 
-namespace Identity.Repositories;
-public class MessageSender:IMessageSender
+namespace Identity.Repositories
 {
-    public Task SendEmailAsync(string toEmail, string subject, string message, bool isMessageHtml = false)
+    public class MessageSender : IMessageSender
     {
-        using (var client = new SmtpClient())
+        public Task SendEmailAsync(string toEmail, string subject, string message, bool isMessageHtml = false)
         {
-
-            var credentials = new NetworkCredential()
+            using (var client = new SmtpClient())
             {
-                UserName = "", // without @gmail.com
-                Password = ""
-            };
 
-            client.Credentials = credentials;
-            client.Host = "smtp.gmail.com";
-            client.Port = 587;
-            client.EnableSsl = true;
+                var credentials = new NetworkCredential()
+                {
+                    UserName = "", // without @gmail.com
+                    Password = ""
+                };
 
-            using var emailMessage = new MailMessage()
-            {
-                To = { new MailAddress(toEmail) },
-                From = new MailAddress(""), // with @gmail.com
-                Subject = subject,
-                Body = message,
-                IsBodyHtml = isMessageHtml
-            };
+                client.Credentials = credentials;
+                client.Host = "smtp.gmail.com";
+                client.Port = 587;
+                client.EnableSsl = true;
 
-            client.Send(emailMessage);
+                using var emailMessage = new MailMessage()
+                {
+                    To = {new MailAddress(toEmail)},
+                    From = new MailAddress(""), // with @gmail.com
+                    Subject = subject,
+                    Body = message,
+                    IsBodyHtml = isMessageHtml
+                };
+
+                client.Send(emailMessage);
+            }
+
+            return Task.CompletedTask;
         }
 
-        return Task.CompletedTask;
     }
-
 }
