@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication;
 
 namespace Identity.ViewModels.Account
 {
@@ -17,5 +18,8 @@ namespace Identity.ViewModels.Account
 
         [Display(Name = "مرا به خاطر بسپار")]
         public bool RememberMe { get; set; }
+
+        public string ReturnUrl { get; set; }
+        public IList<AuthenticationScheme> ExternalLogins { get; set; }
     }
 }

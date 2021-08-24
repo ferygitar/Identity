@@ -11,13 +11,13 @@ namespace Identity.ViewModels.Account
     {
         [Display(Name ="نام کاربری")]
         [Required(ErrorMessage ="نام کاربری را وارد کنید")]
-        [Remote("IsUserNameInUse", "Account")]
+        [Remote("IsUserNameInUse", "Account", HttpMethod = "POST", AdditionalFields = "__RequestVerificationToken")]
         public string UserName { get; set; }
 
         [Display(Name ="ایمیل")]
         [Required(ErrorMessage ="پست الکترونیکی خود را وارد کنید")]
         [EmailAddress]
-        [Remote("IsEmailInUse", "Account")]
+        [Remote("IsEmailInUse", "Account",HttpMethod = "POST",AdditionalFields = "__RequestVerificationToken")]
         public string Email { get; set; }
 
         [Display(Name ="رمز عبور")]

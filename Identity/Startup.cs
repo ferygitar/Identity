@@ -34,11 +34,17 @@ namespace Identity
             {
                 options.UseSqlServer(Configuration.GetConnectionString("IdentityCmsDbConnection"));
             });
+            //Enable Google Authentication
+            services.AddAuthentication().AddGoogle(opthion =>
+            {
+                opthion.ClientId = "92683517948-36dphc123odcraeaj2vsqt69oj8lie3n.apps.googleusercontent.com";
+                opthion.ClientSecret = "3-tCShbFPhCKoj6_BJl36p3V";
+            });
             //Enable Identity
             services.AddIdentity<IdentityUser, IdentityRole>(options =>
             {
                 options.Password.RequiredUniqueChars = 0;
-                options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-";
+                options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-.";
                 options.User.RequireUniqueEmail = true;
                 options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
 
