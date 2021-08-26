@@ -3,13 +3,19 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
+using Identity.Repositories;
 using Identity.ViewModels.ManageUser;
+using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Controllers
 {
     public class ManageUserController : Controller
     {
+        #region Constrauctor
+
         private readonly UserManager<IdentityUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
 
@@ -19,14 +25,22 @@ namespace Identity.Controllers
             _roleManager = roleManager;
         }
 
+        #endregion
+
+        #region Index
+
         [HttpGet]
         public IActionResult Index()
         {
             var model = _userManager.Users
                 .Select(u => new IndexViewModel()
-                { Id = u.Id, UserName = u.UserName, Email = u.Email }).ToList();
+                    { Id = u.Id, UserName = u.UserName, Email = u.Email }).ToList();
             return View(model);
         }
+
+        #endregion
+
+        #region Edit User
 
         [HttpGet]
         public async Task<IActionResult> EditUser(string id)
@@ -58,6 +72,10 @@ namespace Identity.Controllers
             return View(user);
         }
 
+        #endregion
+
+        #region Add User To Role
+
         [HttpGet]
         public async Task<IActionResult> AddUserToRole(string id)
         {
@@ -65,19 +83,12 @@ namespace Identity.Controllers
 
             var user = await _userManager.FindByIdAsync(id);
             if (user == null) return NotFound();
-            var roles = _roleManager.Roles.ToList();
-            var model = new AddUserToRoleViewModel() { UserId = id };
-
-            foreach (var role in roles)
-            {
-                if (!await _userManager.IsInRoleAsync(user, role.Name))
-                {
-                    model.UserRoles.Add(new UserRolesViewModel()
-                    {
-                        RoleName = role.Name
-                    });
-                }
-            }
+            var roles = _roleManager.Roles.AsTracking()
+                .Select(r=>r.Name).ToList();
+            var userRoles =await _userManager.GetRolesAsync(user);
+            var validRoles = roles.Where(r => !userRoles.Contains(r))
+                .Select(r => new UserRolesViewModel(r)).ToList();
+            var model = new AddUserToRoleViewModel(id,validRoles) ;
 
             return View(model);
         }
@@ -93,16 +104,17 @@ namespace Identity.Controllers
                 .Select(u => u.RoleName)
                 .ToList();
             var result = await _userManager.AddToRolesAsync(user, requestRoles);
-
             if (result.Succeeded) return RedirectToAction("index");
-
             foreach (var error in result.Errors)
             {
                 ModelState.AddModelError(string.Empty, error.Description);
             }
-
             return View(model);
         }
+
+        #endregion
+
+        #region Remove User FormRole
 
         [HttpGet]
         public async Task<IActionResult> RemoveUserFromRole(string id)
@@ -110,20 +122,9 @@ namespace Identity.Controllers
             if (string.IsNullOrEmpty(id)) return NotFound();
             var user = await _userManager.FindByIdAsync(id);
             if (user == null) return NotFound();
-            var roles = _roleManager.Roles.ToList();
-            var model = new AddUserToRoleViewModel() { UserId = id };
-
-            foreach (var role in roles)
-            {
-                if (await _userManager.IsInRoleAsync(user, role.Name))
-                {
-                    model.UserRoles.Add(new UserRolesViewModel()
-                    {
-                        RoleName = role.Name
-                    });
-                }
-            }
-
+            var userRoles = await _userManager.GetRolesAsync(user);
+            var validRoles = userRoles.Select(r => new UserRolesViewModel(r)).ToList();
+            var model = new AddUserToRoleViewModel(id, validRoles);
             return View(model);
         }
 
@@ -148,6 +149,10 @@ namespace Identity.Controllers
             return View(model);
         }
 
+        #endregion
+
+        #region Delete User
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteUser(string id)
@@ -159,5 +164,89 @@ namespace Identity.Controllers
 
             return RedirectToAction("Index");
         }
+
+        #endregion
+
+        #region Add User To Clime
+
+        [HttpGet]
+        public async Task<IActionResult> AddUserToClaim(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return NotFound();
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+            var allClaim = ClaimStore.AllClaims;
+            var userClaims = await _userManager.GetClaimsAsync(user);
+            var validClaims = allClaim.Where(c => userClaims.All(x => x.Type != c.Type))
+                .Select(c => new ClaimsViewModel(c.Type)).ToList();
+            var model=new AddOrRemoveClaimViewModel(id,validClaims);
+            return View(model);
+        }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddUserToClaim(AddOrRemoveClaimViewModel model)
+        {
+            if (model == null) return NotFound();
+            var user = await _userManager.FindByIdAsync(model.UserId);
+            if (user == null) return NotFound();
+            var requestClaims =
+                model.UserClaims.Where(r => r.IsSelected)
+                    .Select(u => new Claim(u.ClaimType, true.ToString())).ToList();
+
+            var result = await _userManager.AddClaimsAsync(user, requestClaims);
+
+            if (result.Succeeded) return RedirectToAction("index");
+
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
+
+            return View(model);
+        }
+
+        #endregion
+
+        #region Remove User From Claim
+
+        [HttpGet]
+        public async Task<IActionResult> RemoveUserFromClaim(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return NotFound();
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+
+            var userClaims = await _userManager.GetClaimsAsync(user);
+            var validClaims =
+                userClaims.Select(c => new ClaimsViewModel(c.Type)).ToList();
+
+            var model = new AddOrRemoveClaimViewModel(id, validClaims);
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RemoveUserFromClaim(AddOrRemoveClaimViewModel model)
+        {
+            if (model == null) return NotFound();
+            var user = await _userManager.FindByIdAsync(model.UserId);
+            if (user == null) return NotFound();
+            var requestClaims =
+                model.UserClaims.Where(r => r.IsSelected)
+                    .Select(u => new Claim(u.ClaimType, true.ToString())).ToList();
+
+            var result = await _userManager.RemoveClaimsAsync(user, requestClaims);
+
+            if (result.Succeeded) return RedirectToAction("index");
+
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
+
+            return View(model);
+        }
+
+        #endregion
     }
 }
