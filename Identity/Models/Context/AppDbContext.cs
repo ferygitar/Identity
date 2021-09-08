@@ -16,5 +16,6 @@ namespace Identity.Models.Context
         }
 
         public DbSet<Employee> Employees { get; set; }
+        public DbSet<SiteSetting> SiteSettings { get; set; }
     }
 }

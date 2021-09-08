@@ -2,7 +2,6 @@
 using System.Threading.Tasks;
 
 namespace Identity.Repositories
-
 {
     public interface IMessageSender
     {

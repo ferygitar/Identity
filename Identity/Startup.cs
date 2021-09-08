@@ -13,6 +13,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using PersianTranslate.Identity;
 using Identity.Repositories;
+using Identity.Security.Default;
+using Identity.Security.DynamicRole;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Identity
 {
@@ -52,8 +56,41 @@ namespace Identity
                 .AddEntityFrameworkStores<AppDbContext>()
                 .AddDefaultTokenProviders()
                 .AddErrorDescriber<PersianIdentityErrorDescriber>();
+            //Config Cookie
+            services.ConfigureApplicationCookie(options =>
+            {
+                options.AccessDeniedPath = "/AccessDenied";
+                options.Cookie.Name = "IdentityProj";
+                options.LoginPath = "/Login";
+                options.ReturnUrlParameter = CookieAuthenticationDefaults.ReturnUrlParameter;
+            });
+
+            services.Configure<SecurityStampValidatorOptions>(option =>
+            {
+                option.ValidationInterval = TimeSpan.FromMinutes(30);
+            });
 
             services.AddScoped<IMessageSender, MessageSender>();
+            services.AddAuthorization(option =>
+            {
+                option.AddPolicy("ManageUserEdit",
+                    policy => policy.RequireClaim(ClaimTypesStore.EmployeeList, true.ToString()));
+
+                option.AddPolicy("ClaimOrRole", policy =>
+                    policy.RequireAssertion(ClaimOrRole));
+
+                option.AddPolicy("ClaimRequirment", policy =>
+                    policy.Requirements.Add(new ClaimRequirment(ClaimTypesStore.EmployeeList, true.ToString())));
+
+                option.AddPolicy("DynamicRole", policy =>
+                    policy.Requirements.Add(new DynamicRoleRequirement()));
+
+            });
+            services.AddTransient<IUtilities, Utilities>();
+            services.AddMemoryCache();
+            services.AddHttpContextAccessor();
+            services.AddSingleton<IAuthorizationHandler, DynamicRoleHandler>();
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -84,5 +121,8 @@ namespace Identity
                     pattern: "{controller=Home}/{action=Index}/{id?}");
             });
         }
+        private bool ClaimOrRole(AuthorizationHandlerContext context)
+            => context.User.HasClaim(ClaimTypesStore.EmployeeList, true.ToString()) ||
+               context.User.IsInRole("Admin");
     }
 }
